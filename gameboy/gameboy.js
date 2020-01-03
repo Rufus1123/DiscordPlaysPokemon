@@ -1,60 +1,77 @@
 'use strict';
 
-const Serverboy = require('serverboy');
+const GameBoyAdvance = require('gbajs');
 const PNG = require('pngjs').PNG;
 const fs = require('fs');
-
-const framerate = 17;       // Try to run the emulator at 60 fps (16.66667 ms per frame)
 
 class Emulator {
     constructor (data = {}, romPath){
         Object.defineProperty(this, "romPath", {value: romPath});
 
-        this.gameboy = new Serverboy();
+        this.saveStatePath = "./saves/"
 
-        this.blockMainThread = false;
-
-        this.start();
+        this.initialize();
     }
 
-    start(){
-        var rom = fs.readFileSync(this.romPath);
-        
-        this.gameboy.loadRom(rom);
-    
-        this._mainEmulatorLoop();
-    }
-
-    _mainEmulatorLoop(){
-        setInterval(() => {
-            if(!this.blockMainThread){
-                this.gameboy.doFrame();
+    initialize(){
+        this.gameboy = new GameBoyAdvance();
+        this.gameboy.logLevel = this.gameboy.LOG__ERROR;
+        var biosBuf = fs.readFileSync("./node_modules/gbajs/resources/bios.bin");
+        this.gameboy.setBios(biosBuf);
+        this.gameboy.setCanvasMemory();
+        this.gameboy.loadRomFromFile(this.romPath, async(err, result) => {
+            if (err) {
+                console.error("loadRom failed:", err);
+                process.exit(1);
             }
-        }, framerate);
+              
+            // Loads the default savestate if it exists
+            //await this.loadStateAsync();
+            this.gameboy.loadSavedataFromFile(`${this.saveStatePath}state_0.sav`);
+            this.gameboy.runStable();
+        });
     }
 
     takeScreenshot(){
-        var screen = this.gameboy.getScreen();
-    
-        return this._createPngBuffer(screen);;
-    }
-
-    _createPngBuffer(screen){
-        var png = new PNG({ width: 160, height: 144 });
-        for (let i=0; i<screen.length; i++) {
-            png.data[i] = screen[i];
-        }
+        var png = this.gameboy.screenshot();
     
         return PNG.sync.write(png);
     }
 
     processInput(input){
-        this.blockMainThread = true;
-        for(var holdDown = 0; holdDown < 3; holdDown++){
-            this.gameboy.pressKey(input);
-            this.gameboy.doFrame();
+        input = input.toUpperCase();
+        if (input.startsWith("SAVE"))
+        {
+            this.saveStateAsync();
+        } else if (input.startsWith("LOAD")){
+            this.loadStateAsync();
+        } else if (this.gameboy.keypad[input] !== undefined) {
+            this.gameboy.keypad.press(this.gameboy.keypad[input]);
         }
-        this.blockMainThread = false;
+    }
+
+    async saveStateAsync(saveStateNum = "0"){
+        this.gameboy.downloadSavedataToFile(`${this.saveStatePath}state_${saveStateNum}.sav`, this._saveDataCallback);
+    }
+
+    _saveDataCallback = function(err){
+        if(err){
+            console.log(err);
+        } else {
+            console.log(`Successfully saved game.`);
+        }
+    }
+
+    async loadStateAsync(saveStateNum = "0"){
+        this.gameboy.loadSavedataFromFile(`${this.saveStatePath}state_${saveStateNum}.sav`, this._loadDataCallback);
+    }
+
+    _loadDataCallback = function(err){
+        if(err){
+            console.log(err);
+        } else {
+            console.log(`Successfully loaded savefile.`);
+        }
     }
 };
 

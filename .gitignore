@@ -3,3 +3,4 @@ cpu_instrs.gb
 node_modules/*
 .env
 roms/*
+saves/*.sav

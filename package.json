@@ -13,8 +13,7 @@
     "discord.js": "^11.5.1",
     "dotenv": "^8.2.0",
     "fs": "0.0.1-security",
-    "pngjs": "^3.4.0",
-    "serverboy": "0.0.4",
-    "wasmboy": "^0.5.0"
+    "gbajs": "^1.1.2",
+    "pngjs": "^3.4.0"
   }
 }

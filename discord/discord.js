@@ -3,7 +3,7 @@
 require("dotenv").config();
 const Discord = require('discord.js');
 const Emulator = require('../gameboy/gameboy.js').Emulator;
-var emulator = new Emulator(null, "roms/Yellow.gbc");
+var emulator = new Emulator(null, "roms/FireRed.gba");
 
 var client = new Discord.Client();
 
@@ -39,7 +39,6 @@ var onMessageReceived = (message) => {
         } 
 
         emulator.processInput(command);
-        //setTimeout(postScreenshot, 2000);
     }
 };
 
