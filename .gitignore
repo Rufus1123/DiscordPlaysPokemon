@@ -1,5 +1,6 @@
 cpu_instrs.gb
 
 node_modules/*
-*.env
+.env
 roms/*
+saves/*.sav
