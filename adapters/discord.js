@@ -6,6 +6,7 @@ const Emulator = require('../gameboy/gameboy.js').Emulator;
 var emulator = new Emulator(null, "roms/FireRed.gba");
 
 var client = new Discord.Client();
+var lastMesageTimestamp = new Date().getTime();
 
 exports.init = function (){
     client.login(process.env.TOKEN);
@@ -17,8 +18,13 @@ exports.init = function (){
 var onClientReady = () => {
     console.log("Client ready");
     console.log("Starting main loop");
+
         
-    setInterval(() => postScreenshot(client), 2000);
+    setInterval(() => {
+        if (new Date().getTime() - lastMesageTimestamp < 30000){
+            postScreenshot(client)
+        }
+    }, 2000);
 };
 
 var onMessageReceived = (message) => {
@@ -28,6 +34,7 @@ var onMessageReceived = (message) => {
 
     // Commands should start with a '!'
     if (message.content.startsWith('!')){
+        lastMesageTimestamp = message.createdTimestamp;
         var command = message.content.slice(1).trim().toLowerCase();
 
         processCommand(command, message);
