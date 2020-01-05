@@ -3,7 +3,7 @@
 require("dotenv").config();
 const Discord = require('discord.js');
 const Emulator = require('../gameboy/gameboy.js').Emulator;
-var emulator = new Emulator(null, "roms/FireRed.gba");
+var emulator = new Emulator("roms/FireRed.gba");
 
 var client = new Discord.Client();
 var lastMesageTimestamp = new Date().getTime();
@@ -93,9 +93,9 @@ function hasPermission(member){
 }
 
 function getGameboyChannel(client){
-    let guild = client.guilds.find(g => g.name == 'Mystic Delft');
+    let guild = client.guilds.find(g => g.name == 'DiscordPlaysPokemon');
     if (guild) {
-        return guild.channels.find(c => c.name == 'chat');
+        return guild.channels.find(c => c.name == 'general');
     }
 }
 

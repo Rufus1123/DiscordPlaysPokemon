@@ -5,10 +5,12 @@ const PNG = require('pngjs').PNG;
 const fs = require('fs');
 
 class Emulator {
-    constructor (data = {}, romPath){
+    constructor (romPath){
         Object.defineProperty(this, "romPath", {value: romPath});
 
-        this.saveStatePath = "./saves/"
+        this.saveStatePath = "./saves/";
+
+        this.ButtonPresses = [];
 
         this.initialize();
     }
@@ -30,8 +32,9 @@ class Emulator {
 
     processInput(input){
         input = input.toUpperCase();
-        if (this.gameboy.keypad[input] !== undefined) {
-            this.gameboy.keypad.press(this.gameboy.keypad[input]);
+        var buttonPress = ButtonPress.parseCommand(input);
+        if (this.gameboy.keypad[buttonPress.button] !== undefined) {
+            this.gameboy.keypad.press(this.gameboy.keypad[buttonPress.button], buttonPress.duration);
         }
     }
 
@@ -75,5 +78,34 @@ class Emulator {
         });
     }
 };
+
+class ButtonPress {
+    static parseCommand(input){
+        var duration = input.match(/\d+M?S$/g);
+        duration = (duration === null) ? "300MS" : duration[0];
+        let durationInMilliseconds = this._parseDuration(duration);
+        var button = input.match(/^(A|B|UP|DOWN|LEFT|RIGHT|START|SELECT)?/g)[0];
+        if (button && input.replace(button, "").replace(duration, "") === ""){
+            return {
+                button: button,
+                duration: durationInMilliseconds
+            };
+        }
+
+        return;
+    }
+
+    static _parseDuration(string){
+        let durationInMilliseconds;
+        if (string.includes("M")){
+            durationInMilliseconds = Number(string.slice(0, -2));
+        } else {
+            durationInMilliseconds = Number(string.slice(0, -1));
+            durationInMilliseconds *= 1000;
+        }
+
+        return durationInMilliseconds;
+    }
+}
 
 exports.Emulator = Emulator;
