@@ -19,17 +19,7 @@ class Emulator {
         var biosBuf = fs.readFileSync("./node_modules/gbajs/resources/bios.bin");
         this.gameboy.setBios(biosBuf);
         this.gameboy.setCanvasMemory();
-        this.gameboy.loadRomFromFile(this.romPath, async(err, result) => {
-            if (err) {
-                console.error("loadRom failed:", err);
-                process.exit(1);
-            }
-              
-            // Loads the default savestate if it exists
-            //await this.loadStateAsync();
-            this.gameboy.loadSavedataFromFile(`${this.saveStatePath}state_0.sav`);
-            this.gameboy.runStable();
-        });
+        this._loadRomAndSaveFile();
     }
 
     takeScreenshot(){
@@ -40,18 +30,13 @@ class Emulator {
 
     processInput(input){
         input = input.toUpperCase();
-        if (input.startsWith("SAVE"))
-        {
-            this.saveStateAsync();
-        } else if (input.startsWith("LOAD")){
-            this.loadStateAsync();
-        } else if (this.gameboy.keypad[input] !== undefined) {
+        if (this.gameboy.keypad[input] !== undefined) {
             this.gameboy.keypad.press(this.gameboy.keypad[input]);
         }
     }
 
-    async saveStateAsync(saveStateNum = "0"){
-        this.gameboy.downloadSavedataToFile(`${this.saveStatePath}state_${saveStateNum}.sav`, this._saveDataCallback);
+    writeSaveFile(slot = "0"){
+        this.gameboy.downloadSavedataToFile(`${this.saveStatePath}save_${slot}.sav`, this._saveDataCallback);
     }
 
     _saveDataCallback = function(err){
@@ -62,8 +47,12 @@ class Emulator {
         }
     }
 
-    async loadStateAsync(saveStateNum = "0"){
-        this.gameboy.loadSavedataFromFile(`${this.saveStatePath}state_${saveStateNum}.sav`, this._loadDataCallback);
+    readSaveFile(slot = "0"){
+        this.gameboy.loadSavedataFromFile(`${this.saveStatePath}save_${slot}.sav`, this._loadDataCallback);
+    }
+
+    readSaveFileAndReset(slot){
+        this._loadRomAndSaveFile(slot);
     }
 
     _loadDataCallback = function(err){
@@ -72,6 +61,18 @@ class Emulator {
         } else {
             console.log(`Successfully loaded savefile.`);
         }
+    }
+
+    _loadRomAndSaveFile(slot = "0") {
+        this.gameboy.loadRomFromFile(this.romPath, (err, result) => {
+            if (err) {
+                console.error("loadRom failed:", err);
+                process.exit(1);
+            }
+            // Loads the default savestate if it exists
+            this.readSaveFile(slot);
+            this.gameboy.runStable();
+        });
     }
 };
 

@@ -1,5 +1,5 @@
 'use strict';
 
-const Discord = require('./discord/discord.js');
+const Discord = require('./adapters/discord.js');
 
 Discord.init();
