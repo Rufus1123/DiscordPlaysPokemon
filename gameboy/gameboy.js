@@ -33,9 +33,20 @@ class Emulator {
     processInput(input){
         input = input.toUpperCase();
         var buttonPress = ButtonPress.parseCommand(input);
+        if (buttonPress === undefined) {
+            return `There was an error processing your command at ${input}. Button not recognized.`;
+        }
+        
+        var errorMessage = ButtonPress.verifyDurationLimits(buttonPress);
+        if (errorMessage) {
+            return `There was an error processing your command at ${input}. ${errorMessage}`;
+        }
+
         if (this.gameboy.keypad[buttonPress.button] !== undefined) {
             this.gameboy.keypad.press(this.gameboy.keypad[buttonPress.button], buttonPress.duration);
         }
+
+        return;
     }
 
     writeSaveFile(slot = "0"){
@@ -90,6 +101,17 @@ class ButtonPress {
                 button: button,
                 duration: durationInMilliseconds
             };
+        }
+
+        return;
+    }
+
+    static verifyDurationLimits(buttonPress){
+        if (buttonPress.duration < 100){
+            return `Duration of ${buttonPress.duration} is too short. Please specify a duration of more than 100ms.`;
+        }
+        if (buttonPress.duration > 10000){
+            return `Duration of ${buttonPress.duration} is too long. Please specify a duration of less than 10s.`;
         }
 
         return;

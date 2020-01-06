@@ -43,20 +43,25 @@ var onMessageReceived = (message) => {
 
 function processCommand(command, message){
     var commands = command.split(" ");
-    
+    let feedback;
+
     switch(commands[0]){
         case "help":
-            sendHelpMessage(message);
+            feedback = sendHelpMessage(message);
             break;
         case "load":
-            processLoad(commands, message);
+            feedback = processLoad(commands, message);
             break;
         case "save":
-            processSave(commands, message);
+            feedback = processSave(commands, message);
             break;
         default:
-            emulator.processInput(command);
+            feedback = emulator.processInput(command);
             break;
+    }
+
+    if (feedback) {
+        message.channel.send(feedback);
     }
 }
 
@@ -65,7 +70,7 @@ function processLoad(commands, message){
     if (state >= 0 && state < 6){
         emulator.readSaveFileAndReset(state);
     } else {
-        message.channel.send("Specify a slot to load to, i.e. `!load 0` to load in slot 0");
+        return "Specify a slot to load to, i.e. `!load 0` to load in slot 0.";
     }
 }
 
@@ -75,16 +80,16 @@ function processSave(commands, message){
         let permitted = hasPermission(message.member);
         if (permitted){
             emulator.writeSaveFile(slot);
-            message.channel.send("Game has been saved into slot " + slot);
+            return `Game has been saved into slot ${slot}.`;
         } else {
             // You are not permitted to load {state}
-            message.channel.send("You are not allowed to save in slot " + slot);
+            return  `You are not allowed to save in slot ${slot}.`;
         }
     } else if (slot >=0 && slot < 3){
         emulator.writeSaveFile(slot);
-        message.channel.send("Game has been saved into slot " + slot);
+        return `Game has been saved into slot ${slot}.`;
     } else {
-        message.channel.send("Specify a slot to save to, i.e. `!save 0` to save in slot 0");
+        return "Specify a slot to save to, i.e. `!save 0` to save in slot 0.";
     }
 }
 
@@ -109,17 +114,17 @@ async function sendScreenshot(channel, file){
     await channel.send({file: file});
 }
 
-async function sendHelpMessage(message){
+function sendHelpMessage(){
     var helpText = "Start your input with a `!`. The emulator reacts to " +
                    "`up`, `down`, `left`, `right`, `a`, `b`, `start` and `select`.\n" +
-                   "You can also input multiple instructions at once, e.g. `!a down a`." +
+                   "You can also input multiple instructions at once, e.g. `!a down a`.\n" +
                    "Advanced commands: postfix a duration to hold the button, e.g. `!b500ms` " +
-                   "to hold `b` for 500 milliseconds or `!right2s` to hold `→` for 2 seconds`.\n" +
+                   "to hold `b` for 500 milliseconds or `!right2s` to hold `→` for 2 seconds.\n" +
                    "Note: After saving the game, use `!save n` to create a save state in slot n. " +
-                   "Slots 0, 1 and 2 can be used by everyone. Slots 4, 5 and 6 are reserved " +
+                   "Slots 0, 1 and 2 can be used by everyone. Slots 3, 4 and 5 are reserved " +
                    "for moderators.";
     var embed = new Discord.RichEmbed()
         .setTitle("Discord Plays Help")
         .setDescription(helpText);
-    await message.channel.send(embed);
+    return embed;
 }
