@@ -3,6 +3,7 @@
 const GameBoyAdvance = require('gbajs');
 const PNG = require('pngjs').PNG;
 const fs = require('fs');
+const util = require('../helpers/util');
 
 class Emulator {
     constructor (romPath){
@@ -32,21 +33,54 @@ class Emulator {
 
     processInput(input){
         input = input.toUpperCase();
-        var buttonPress = ButtonPress.parseCommand(input);
-        if (buttonPress === undefined) {
-            return `There was an error processing your command at ${input}. Button not recognized.`;
-        }
-        
-        var errorMessage = ButtonPress.verifyDurationLimits(buttonPress);
-        if (errorMessage) {
-            return `There was an error processing your command at ${input}. ${errorMessage}`;
+        let buttonPresses = [];
+
+        try{
+            buttonPresses = this.parseInput(input);
+        } catch (error) {
+            return error.message;
         }
 
-        if (this.gameboy.keypad[buttonPress.button] !== undefined) {
-            this.gameboy.keypad.press(this.gameboy.keypad[buttonPress.button], buttonPress.duration);
+        this.pressAndHoldButtons(buttonPresses);
+    }
+
+    parseInput(input){
+        var inputArr = input.split(" ");
+        var commands = [];
+
+        for (var i=0; i<inputArr.length; i++){
+            let buttonPress = ButtonPress.parseCommand(inputArr[i]);
+
+            commands.push(buttonPress);
         }
 
-        return;
+        this.verifyCommandLimits(commands);
+
+        return commands;
+    }
+
+    verifyCommandLimits(commands){
+        var totalLength = commands.reduce((prev, curr) => prev + curr.duration, 0);
+
+        if (totalLength < 100){
+            throw new Error(`Duration of ${totalLength} is too short. Please specify a command with a total duration of more than 100ms.`);
+        }
+        if (totalLength > 10000){
+            throw new Error(`Duration of ${totalLength} is too long. Please specify a command with a total duration of less than 10s.`);
+        }
+    }
+
+    async pressAndHoldButtons(buttonPresses){
+        for(var i=0; i < buttonPresses.length; i++){
+            await this.pressAndHoldButton(buttonPresses[i]);
+        }
+    }
+
+    async pressAndHoldButton(buttonPress){
+        let button = this.gameboy.keypad[buttonPress.button];
+        this.gameboy.keypad.keydown(button);
+        await util.sleep(buttonPress.duration);
+        this.gameboy.keypad.keyup(button);
     }
 
     writeSaveFile(slot = "0"){
@@ -61,7 +95,7 @@ class Emulator {
         }
     }
 
-    readSaveFile(slot = "0"){
+    _readSaveFile(slot = "0"){
         this.gameboy.loadSavedataFromFile(`${this.saveStatePath}save_${slot}.sav`, this._loadDataCallback);
     }
 
@@ -84,7 +118,7 @@ class Emulator {
                 process.exit(1);
             }
             // Loads the default savestate if it exists
-            this.readSaveFile(slot);
+            this._readSaveFile(slot);
             this.gameboy.runStable();
         });
     }
@@ -95,26 +129,34 @@ class ButtonPress {
         var duration = input.match(/\d+M?S$/g);
         duration = (duration === null) ? "300MS" : duration[0];
         let durationInMilliseconds = this._parseDuration(duration);
-        var button = input.match(/^(A|B|UP|DOWN|LEFT|RIGHT|START|SELECT)?/g)[0];
-        if (button && input.replace(button, "").replace(duration, "") === ""){
-            return {
-                button: button,
-                duration: durationInMilliseconds
-            };
-        }
 
-        return;
+        var button = input.match(/^(A|B|UP|DOWN|LEFT|RIGHT|START|SELECT)?/g)[0];
+
+        try{
+            if (button && input.replace(button, "").replace(duration, "") === ""){
+                var buttonPress = {
+                    button: button,
+                    duration: durationInMilliseconds
+                };
+
+                this._verifyDurationLimits(buttonPress);
+
+                return buttonPress;
+            } else {
+                throw new Error(`Button not recognized.`);
+            }
+        } catch (error){
+            throw new Error(`There was an error processing your command at ${input}. ${error.message}`);
+        }
     }
 
-    static verifyDurationLimits(buttonPress){
+    static _verifyDurationLimits(buttonPress){
         if (buttonPress.duration < 100){
-            return `Duration of ${buttonPress.duration} is too short. Please specify a duration of more than 100ms.`;
+            throw new Error(`Duration of ${buttonPress.duration} is too short. Please specify a duration of more than 100ms.`);
         }
         if (buttonPress.duration > 10000){
-            return `Duration of ${buttonPress.duration} is too long. Please specify a duration of less than 10s.`;
+            throw new Error(`Duration of ${buttonPress.duration} is too long. Please specify a duration of less than 10s.`);
         }
-
-        return;
     }
 
     static _parseDuration(string){
