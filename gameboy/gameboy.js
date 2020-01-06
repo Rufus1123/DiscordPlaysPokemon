@@ -46,41 +46,64 @@ class Emulator {
 
     parseInput(input){
         var inputArr = input.split(" ");
-        var commands = [];
+        var buttonPresses = [];
 
         for (var i=0; i<inputArr.length; i++){
             let buttonPress = ButtonPress.parseCommand(inputArr[i]);
 
-            commands.push(buttonPress);
+            buttonPresses.push(buttonPress);
         }
 
-        this.verifyCommandLimits(commands);
+        buttonPresses = this.updateDurationHoldButtons(buttonPresses);
+        this.verifyCommandLimits(buttonPresses);
 
-        return commands;
+        return buttonPresses;
+    }
+
+    updateDurationHoldButtons(buttonPresses){
+        for (var i=0; i<buttonPresses.length; i++){
+            if (buttonPresses[i].hold){
+                var holdDuration = buttonPresses.slice(i+1).reduce((prev, curr) => prev + curr.duration, 0);
+                buttonPresses[i].duration = holdDuration;
+                if (holdDuration < 100) {
+                    throw new Error(`Cannot hold button ${buttonPresses[i].button} for ${buttonPresses[i].holdDuration}ms`);
+                }
+            }
+        }
+        return buttonPresses;
     }
 
     verifyCommandLimits(commands){
         var totalLength = commands.reduce((prev, curr) => prev + curr.duration, 0);
 
         if (totalLength < 100){
-            throw new Error(`Duration of ${totalLength} is too short. Please specify a command with a total duration of more than 100ms.`);
+            throw new Error(`Duration of ${totalLength}ms is too short. Please specify a command with a total duration of more than 100ms.`);
         }
         if (totalLength > 10000){
-            throw new Error(`Duration of ${totalLength} is too long. Please specify a command with a total duration of less than 10s.`);
+            throw new Error(`Duration of ${totalLength}ms is too long. Please specify a command with a total duration of less than 10s.`);
         }
     }
 
     async pressAndHoldButtons(buttonPresses){
         for(var i=0; i < buttonPresses.length; i++){
-            await this.pressAndHoldButton(buttonPresses[i]);
+            if (buttonPresses[i].hold){
+                this.pressAndHoldButton(buttonPresses[i]);
+            } else {
+                await this.pressAndHoldButton(buttonPresses[i]);
+            }
         }
     }
 
     async pressAndHoldButton(buttonPress){
-        let button = this.gameboy.keypad[buttonPress.button];
-        this.gameboy.keypad.keydown(button);
-        await util.sleep(buttonPress.duration);
-        this.gameboy.keypad.keyup(button);
+        if (buttonPress.button === "."){
+            // idle; don't press any button
+            await util.sleep(buttonPress.duration);
+        } else {
+            let button = this.gameboy.keypad[buttonPress.button];
+            this.gameboy.keypad.keydown(button);
+            await util.sleep(buttonPress.duration);
+            this.gameboy.keypad.keyup(button);
+        }
     }
 
     writeSaveFile(slot = "0"){
@@ -130,13 +153,19 @@ class ButtonPress {
         duration = (duration === null) ? "300MS" : duration[0];
         let durationInMilliseconds = this._parseDuration(duration);
 
-        var button = input.match(/^(A|B|UP|DOWN|LEFT|RIGHT|START|SELECT)?/g)[0];
+        var button = input.match(/^_?(A|B|UP|DOWN|LEFT|RIGHT|START|SELECT|.)?/g)[0];
 
         try{
             if (button && input.replace(button, "").replace(duration, "") === ""){
+                let hold = false;
+                if (button.startsWith("_")){
+                    button = button.slice(1);
+                    hold = true;
+                }
                 var buttonPress = {
                     button: button,
-                    duration: durationInMilliseconds
+                    duration: durationInMilliseconds,
+                    hold: hold
                 };
 
                 this._verifyDurationLimits(buttonPress);
@@ -152,10 +181,10 @@ class ButtonPress {
 
     static _verifyDurationLimits(buttonPress){
         if (buttonPress.duration < 100){
-            throw new Error(`Duration of ${buttonPress.duration} is too short. Please specify a duration of more than 100ms.`);
+            throw new Error(`Duration of ${buttonPress.duration}ms is too short. Please specify a duration of more than 100ms.`);
         }
         if (buttonPress.duration > 10000){
-            throw new Error(`Duration of ${buttonPress.duration} is too long. Please specify a duration of less than 10s.`);
+            throw new Error(`Duration of ${buttonPress.duration}ms is too long. Please specify a duration of less than 10s.`);
         }
     }
 
