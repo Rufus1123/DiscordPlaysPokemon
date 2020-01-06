@@ -60,6 +60,10 @@ function processCommand(command, message){
             break;
     }
 
+    sendMessage(feedback, message);
+}
+
+function sendMessage(feedback, message) {
     if (feedback) {
         message.channel.send(feedback);
     }
