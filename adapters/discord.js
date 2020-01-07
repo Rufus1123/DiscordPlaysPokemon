@@ -121,12 +121,17 @@ async function sendScreenshot(channel, file){
 function sendHelpMessage(){
     var helpText = "Start your input with a `!`. The emulator reacts to " +
                    "`up`, `down`, `left`, `right`, `a`, `b`, `start` and `select`.\n" +
-                   "You can also input multiple instructions at once, e.g. `!a down a`.\n" +
+                   "Chaining commands: you can input multiple instructions at once, e.g. `!a down a`." +
+                   "Each button will be pressed for 300ms. A dot `.` corresponds to not pressing a button\n" +
+                   "Holding buttons: prefix an underscore `_` to hold a button for the duration of a chained" +
+                   "input, e.g. `!_b up5s` holds the `B` button down while pressing `↑`.\n" +
                    "Advanced commands: postfix a duration to hold the button, e.g. `!b500ms` " +
-                   "to hold `b` for 500 milliseconds or `!right2s` to hold `→` for 2 seconds.\n" +
-                   "Note: After saving the game, use `!save n` to create a save state in slot n. " +
-                   "Slots 0, 1 and 2 can be used by everyone. Slots 3, 4 and 5 are reserved " +
-                   "for moderators.";
+                   "to hold `B` for 500 milliseconds or `!right2s` to hold `→` for 2 seconds.\n" +
+                   "Saving and Loading: `!save n` will save the current save on the Gameboys Memory Card to " +
+                   "slot `n`. `!load n` will load the save into the Gameboys Memory Card and restart the " +
+                   "Game so you can load the specified save file. Slots 0, 1 and 2 can be used by everyone. " +
+                   "Slots 3, 4 and 5 are reserved for moderators.\n" +
+                   "Note: After saving the game, use `!save n` to create a save state in slot `n`."
     var embed = new Discord.RichEmbed()
         .setTitle("Discord Plays Help")
         .setDescription(helpText);
