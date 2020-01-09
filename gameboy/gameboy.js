@@ -110,7 +110,7 @@ class Emulator {
         this.gameboy.downloadSavedataToFile(`${this.saveStatePath}save_${slot}.sav`, this._saveDataCallback);
     }
 
-    _saveDataCallback = function(err){
+    _saveDataCallback(err){
         if(err){
             console.log(err);
         } else {
@@ -126,7 +126,7 @@ class Emulator {
         this._loadRomAndSaveFile(slot);
     }
 
-    _loadDataCallback = function(err){
+    _loadDataCallback(err){
         if(err){
             console.log(err);
         } else {
