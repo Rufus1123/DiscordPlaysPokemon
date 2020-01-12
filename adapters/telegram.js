@@ -35,7 +35,7 @@ var onMessageReceived = (message) => {
       return;
   }
 
-  // Commands should start with a '!'
+  // Commands should start with a '/'
   if (message.text.startsWith('/')){
       lastMesageTimestamp = message.date * 1000;
       var command = message.text.slice(1).trim().toLowerCase();
@@ -78,7 +78,7 @@ function processLoad(commands){
   if (state >= 0 && state < 6){
       emulator.readSaveFileAndReset(state);
   } else {
-      return "Specify a slot to load to, i.e. `!load 0` to load in slot 0.";
+      return "Specify a slot to load to, i.e. `/load 0` to load in slot 0.";
   }
 }
 
@@ -89,7 +89,7 @@ function processSave(commands, message){
       emulator.writeSaveFile(slot);
       return `Game has been saved into slot ${slot}.`;
   } else {
-      return "Specify a slot to save to, i.e. `!save 0` to save in slot 0.";
+      return "Specify a slot to save to, i.e. `/save 0` to save in slot 0.";
   }
 }
 

@@ -9,7 +9,7 @@ var client = new Discord.Client();
 var lastMesageTimestamp = new Date().getTime();
 
 exports.init = function (){
-    client.login(process.env.TOKEN);
+    client.login(process.env.DiscordToken);
 
     client.on('ready', () => onClientReady());
     client.on('message', (message) => onMessageReceived(message));
@@ -102,9 +102,9 @@ function hasPermission(member){
 }
 
 function getGameboyChannel(client){
-    let guild = client.guilds.find(g => g.name == 'DiscordPlaysPokemon');
+    let guild = client.guilds.find(g => g.name == process.env.DiscordGuild);
     if (guild) {
-        return guild.channels.find(c => c.name == 'general');
+        return guild.channels.find(c => c.name == process.env.DiscordChannel);
     }
 }
 
