@@ -1,6 +1,7 @@
 'use strict';
 
 const GameBoyAdvance = require('gbajs');
+const Dropbox = require('../dropbox/dropbox');
 const PNG = require('pngjs').PNG;
 const fs = require('fs');
 const util = require('../helpers/util');
@@ -107,32 +108,58 @@ class Emulator {
     }
 
     writeSaveFile(slot = "0"){
-        this.gameboy.downloadSavedataToFile(`${this.saveStatePath}save_${slot}.sav`, this._saveDataCallback);
-    }
+        return new Promise((resolve, reject) => {
+            var saveFile = `save_${slot}.sav`;
+            this.gameboy.downloadSavedataToFile(this.saveStatePath + saveFile, async (err)=>{
+                if(err){
+                    console.log(err);
 
-    _saveDataCallback(err){
-        if(err){
-            console.log(err);
-        } else {
-            console.log(`Successfully saved game.`);
-        }
+                    return reject(err);
+                } else {
+                    console.log(`Successfully saved game to file.`);
+                }
+
+                try {
+                    await Dropbox.uploadFile(fs.readFileSync(this.saveStatePath + saveFile), saveFile);
+                } catch(err) {
+                    return reject(err);
+                }
+
+                console.log("Succesfully saved " + saveFile + " to dropbox.");
+                resolve(saveFile);
+            });
+        });
     }
 
     _readSaveFile(slot = "0"){
-        this.gameboy.loadSavedataFromFile(`${this.saveStatePath}save_${slot}.sav`, this._loadDataCallback);
+        return new Promise(async (resolve, reject) => {
+            var saveFile = `save_${slot}.sav`;
+
+            try {
+                var content = await Dropbox.downloadFile(saveFile);
+                fs.writeFileSync(this.saveStatePath + saveFile, content);
+            } catch(err) {
+                return reject(err);
+            }
+
+            this.gameboy.loadSavedataFromFile(this.saveStatePath + saveFile, (err) => {
+                if(err){
+                    console.log(err);
+
+                    reject(err);
+                } else {
+                    console.log(`Successfully loaded savefile.`);
+                    resolve(saveFile);
+                }
+            });
+        });
     }
 
     readSaveFileAndReset(slot){
         this._loadRomAndSaveFile(slot);
     }
 
-    _loadDataCallback(err){
-        if(err){
-            console.log(err);
-        } else {
-            console.log(`Successfully loaded savefile.`);
-        }
-    }
+    _loadDataCallback
 
     _loadRomAndSaveFile(slot = "0") {
         this.gameboy.loadRomFromFile(this.romPath, (err, result) => {
