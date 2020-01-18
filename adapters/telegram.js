@@ -1,12 +1,11 @@
 'use strict';
 
 require("dotenv").config();
-const TelegramClient = require('telegram-bot-api');
+const TelegramClient = require('node-telegram-bot-api');
 const Emulator = require('../gameboy/gameboy.js').Emulator;
-const fs = require('fs');
 var emulator = new Emulator("roms/FireRed.gba");
 
-const client = new TelegramClient({token: process.env.TelegramToken, updates: {enabled: true}});
+const client = new TelegramClient(process.env.TelegramToken, {polling: true});
 var lastMesageTimestamp = new Date().getTime();
 
 exports.init = function (){
@@ -24,9 +23,9 @@ var startMainLoop = () => {
   }, 2000);
 };
 
-client.on('message', (message) => onMessageReceived(message));
+client.onText(/\!/, (message) => onMessageReceived(message));
 
-client.on('inline.callback.query', (msg) => {
+client.on('callback_query', (msg) => {
   msg.text = msg.data;
   msg.date = new Date().getTime();
   onMessageReceived(msg)
@@ -37,8 +36,8 @@ var onMessageReceived = (message) => {
       return;
   }
 
-  // Commands should start with a '!'
-  if (message.text && message.text.startsWith('!')){
+  // Commands should start with a '/'
+  if (message.text.startsWith('!')){
       lastMesageTimestamp = message.date * 1000;
       var command = message.text.slice(1).trim().toLowerCase();
 
@@ -71,10 +70,7 @@ function processCommand(command, message){
 function sendMessage(feedback) {
   var chatId = getGameboyChatId();
   if (feedback) {
-      client.sendMessage({
-        chat_id: chatId, 
-        text: feedback
-      });
+      client.sendMessage(chatId, feedback);
   }
 }
 
@@ -126,12 +122,8 @@ async function sendScreenshot(chatId, file){
     ]
   }
 
-  fs.writeFileSync("screenshots/screenshot.png", file)
-
-  await client.sendPhoto({
-    chat_id: chatId, 
-    photo: "screenshots/screenshot.png",
-    reply_markup: JSON.stringify(reply_markup)
+  await client.sendPhoto(chatId, file, {
+    "reply_markup": reply_markup
   });
 }
 
