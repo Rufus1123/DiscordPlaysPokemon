@@ -2,7 +2,6 @@
 
 const GameBoyAdvance = require('gbajs');
 const Dropbox = require('../dropbox/dropbox');
-const PNG = require('pngjs').PNG;
 const fs = require('fs');
 const util = require('../helpers/util');
 
@@ -27,9 +26,7 @@ class Emulator {
     }
 
     takeScreenshot(){
-        var png = this.gameboy.screenshot();
-    
-        return PNG.sync.write(png);
+        return this.gameboy.screenshot();
     }
 
     processInput(input){

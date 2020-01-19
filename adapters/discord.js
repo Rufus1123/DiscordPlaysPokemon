@@ -3,10 +3,14 @@
 require("dotenv").config();
 const Discord = require('discord.js');
 const Emulator = require('../gameboy/gameboy.js').Emulator;
+const PNG = require('pngjs').PNG;
+const screenshotComparer = require('../helpers/screenshotComparer');
 var emulator = new Emulator("roms/FireRed.gba");
 
 var client = new Discord.Client();
+
 var lastMesageTimestamp = new Date().getTime();
+var onlySendScreenshotWhenDifferent = true;
 
 exports.init = function (){
     client.login(process.env.DiscordToken);
@@ -115,7 +119,14 @@ function postScreenshot(){
 }
 
 async function sendScreenshot(channel, file){
-    await channel.send({file: file});
+    if (onlySendScreenshotWhenDifferent) {
+        var areDifferent = await screenshotComparer.isDifferentFromPosted(file)
+        if (areDifferent == true) {
+            await channel.send({file: PNG.sync.write(file)});
+        }
+    } else {
+        await channel.send({file: PNG.sync.write(file)});
+    }
 }
 
 function sendHelpMessage(){

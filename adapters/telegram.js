@@ -3,10 +3,12 @@
 require("dotenv").config();
 const TelegramClient = require('node-telegram-bot-api');
 const Emulator = require('../gameboy/gameboy.js').Emulator;
+const PNG = require('pngjs').PNG;
 var emulator = new Emulator("roms/FireRed.gba");
 
 const client = new TelegramClient(process.env.TelegramToken, {polling: true});
 var lastMesageTimestamp = new Date().getTime();
+var onlySendScreenshotWhenDifferent = true;
 
 exports.init = function (){
   startMainLoop();
@@ -122,9 +124,18 @@ async function sendScreenshot(chatId, file){
     ]
   }
 
-  await client.sendPhoto(chatId, file, {
-    "reply_markup": reply_markup
-  });
+  if (onlySendScreenshotWhenDifferent) {
+    var areDifferent = await screenshotComparer.isDifferentFromPosted(file)
+    if (areDifferent == true) {
+      await client.sendPhoto(chatId, PNG.sync.write(file), {
+        "reply_markup": reply_markup
+      });
+    }
+  } else {
+    await client.sendPhoto(chatId, PNG.sync.write(file), {
+      "reply_markup": reply_markup
+    });
+  }
 }
 
 function sendHelpMessage(){
