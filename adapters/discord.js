@@ -59,6 +59,10 @@ function processCommand(command, message){
         case "save":
             feedback = processSave(commands, message);
             break;
+        case "update":
+            var screenshot = emulator.takeScreenshot();
+            getGameboyChannel(client).send({file: PNG.sync.write(screenshot)});
+            return;
         default:
             feedback = emulator.processInput(command);
             break;

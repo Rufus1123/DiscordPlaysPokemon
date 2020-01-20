@@ -52,8 +52,8 @@ class Emulator {
             buttonPresses.push(buttonPress);
         }
 
-        buttonPresses = this.updateDurationHoldButtons(buttonPresses);
         this.verifyCommandLimits(buttonPresses);
+        buttonPresses = this.updateDurationHoldButtons(buttonPresses);
 
         return buttonPresses;
     }
@@ -155,8 +155,6 @@ class Emulator {
     readSaveFileAndReset(slot){
         this._loadRomAndSaveFile(slot);
     }
-
-    _loadDataCallback
 
     _loadRomAndSaveFile(slot = "0") {
         this.gameboy.loadRomFromFile(this.romPath, (err, result) => {

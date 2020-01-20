@@ -12,7 +12,14 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}\\index.js",
-            "envFile": "${workspaceFolder}/development.env",
+            "envFile": "${workspaceFolder}/development.env"
+        },
+        {
+            "name": "Docker Node.js Launch and Attach",
+            "type": "docker",
+            "request": "launch",
+            "preLaunchTask": "docker-run: debug",
+            "platform": "node"
         }
     ]
 }
