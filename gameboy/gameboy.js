@@ -6,8 +6,9 @@ const fs = require('fs');
 const util = require('../helpers/util');
 
 class Emulator {
-    constructor (romPath){
+    constructor (romPath, saveFilePrefix){
         Object.defineProperty(this, "romPath", {value: romPath});
+        Object.defineProperty(this, "saveFilePrefix", {value: saveFilePrefix})
 
         this.saveStatePath = "./saves/";
 
@@ -106,7 +107,7 @@ class Emulator {
 
     writeSaveFile(slot = "0"){
         return new Promise((resolve, reject) => {
-            var saveFile = `save_${slot}.sav`;
+            var saveFile = `${this.saveFilePrefix}_save_${slot}.sav`;
             this.gameboy.downloadSavedataToFile(this.saveStatePath + saveFile, async (err)=>{
                 if(err){
                     console.log(err);
@@ -130,7 +131,7 @@ class Emulator {
 
     _readSaveFile(slot = "0"){
         return new Promise(async (resolve, reject) => {
-            var saveFile = `save_${slot}.sav`;
+            var saveFile = `${this.saveFilePrefix}_save_${slot}.sav`;
 
             try {
                 var content = await Dropbox.downloadFile(saveFile);
@@ -157,14 +158,19 @@ class Emulator {
     }
 
     _loadRomAndSaveFile(slot = "0") {
-        this.gameboy.loadRomFromFile(this.romPath, (err, result) => {
+        this.gameboy.loadRomFromFile(this.romPath, async (err, result) => {
             if (err) {
                 console.error("loadRom failed:", err);
                 process.exit(1);
             }
             // Loads the default savestate if it exists
-            this._readSaveFile(slot);
-            this.gameboy.runStable();
+            try {
+                await this._readSaveFile(slot);
+            } catch (err) {
+                console.log("save file does not exist. Booting with empty memory card.");
+            } finally {
+                this.gameboy.runStable();
+            }
         });
     }
 };

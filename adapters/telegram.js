@@ -4,11 +4,28 @@ require("dotenv").config();
 const TelegramClient = require('node-telegram-bot-api');
 const Emulator = require('../gameboy/gameboy.js').Emulator;
 const PNG = require('pngjs').PNG;
-var emulator = new Emulator("roms/FireRed.gba");
+var emulator = new Emulator("roms/FireRed.gba", process.env.TelegramChatId);
 
 const client = new TelegramClient(process.env.TelegramToken, {polling: true});
 var lastMesageTimestamp = new Date().getTime();
 var onlySendScreenshotWhenDifferent = true;
+
+const reply_markup = {
+  inline_keyboard: [
+    [
+      {text: "A", callback_data: "!A"},
+      {text: "↑", callback_data: "!UP"},
+      {text: "B", callback_data: "!B"}
+    ],[
+      {text: "←", callback_data: "!LEFT"},
+      {text: "↓", callback_data: "!DOWN"},
+      {text: "→", callback_data: "!RIGHT"}
+    ],[
+      {text: "START", callback_data: "!START"},
+      {text: "SELECT", callback_data: "!SELECT"}
+    ]
+  ]
+};
 
 exports.init = function (){
   startMainLoop();
@@ -61,6 +78,12 @@ function processCommand(command, message){
       case "save":
           feedback = processSave(commands, message);
           break;
+      case "update":        
+          var chatId = getGameboyChatId();
+          var screen = emulator.takeScreenshot();
+          client.sendPhoto(chatId, PNG.sync.write(screen), {
+            "reply_markup": reply_markup
+          });
       default:
           feedback = emulator.processInput(command);
           break;
@@ -107,23 +130,6 @@ function postScreenshot(){
 }
 
 async function sendScreenshot(chatId, file){
-  var reply_markup = {
-    inline_keyboard: [
-      [
-        {text: "A", callback_data: "!A"},
-        {text: "↑", callback_data: "!UP"},
-        {text: "B", callback_data: "!B"}
-      ],[
-        {text: "←", callback_data: "!LEFT"},
-        {text: "↓", callback_data: "!DOWN"},
-        {text: "→", callback_data: "!RIGHT"}
-      ],[
-        {text: "START", callback_data: "!START"},
-        {text: "SELECT", callback_data: "!SELECT"}
-      ]
-    ]
-  }
-
   if (onlySendScreenshotWhenDifferent) {
     var areDifferent = await screenshotComparer.isDifferentFromPosted(file)
     if (areDifferent == true) {
@@ -139,19 +145,31 @@ async function sendScreenshot(chatId, file){
 }
 
 function sendHelpMessage(){
-  var helpText = "Start your input with a `!`. The emulator reacts to " +
-                 "`up`, `down`, `left`, `right`, `a`, `b`, `start` and `select`.\n" +
-                 "Chaining commands: you can input multiple instructions at once, e.g. `!a down a`." +
-                 "Each button will be pressed for 300ms. A dot `.` corresponds to not pressing a button\n" +
-                 "Holding buttons: prefix an underscore `_` to hold a button for the duration of a chained" +
-                 "input, e.g. `!_b up5s` holds the `B` button down while pressing `↑`.\n" +
-                 "Advanced commands: postfix a duration to hold the button, e.g. `!b500ms` " +
-                 "to hold `B` for 500 milliseconds or `!right2s` to hold `→` for 2 seconds.\n" +
-                 "Saving and Loading: `!save n` will save the current save on the Gameboys Memory Card to " +
-                 "slot `n`. `!load n` will load the save into the Gameboys Memory Card and restart the " +
-                 "Game so you can load the specified save file. Slots 0, 1 and 2 can be used by everyone. " +
-                 "Slots 3, 4 and 5 are reserved for moderators.\n" +
-                 "Note: After saving the game, use `!save n` to create a save state in slot `n`."
+  var helpText = "Let's play Pokemon! You can play the game here in Discord by sending commands. Your input needs to " +
+  "start with a `!`.\n\n" +
+  "To reduce bandwidth, only one image every two seconds will be posted. Furthermore, no more " +
+  "images will be posted 10 seconds after the last command was received. Also, if a new image " +
+  "is identical to the previously posted message, it will not be posted. You can explicitly " +
+  "request new image with the `!update`-command.\n\n" +
+  "**Controls**\n`!A`, `!B`, `!START`, `!SELECT`, and the directional buttons `!UP`, `!DOWN`, `!LEFT`, and `!RIGHT`.\n\n" +
+  "**Other Commands**\n`!save n`:\n" +
+  "Save the current savefile in the GameBoys Memory Card to slot `n`.\n" +
+  "There are 6 slots you can use: 0, 1, .., 5.\n" +
+  "Note: After saving the game, use `!save n` to create a save state in slot `n`." +
+  "`!load n`:\n" +
+  "Load the savefile in slot `n` into the Gameboy. This will reset the Gameboy " +
+  "and allow you to continue where the game was last saved.\n" +
+  "`!update`:\n" +
+  "Sends a new frame, regardless of time since last command.\n" +
+  "`!help`:\n" +
+  "Prints this help message.\n\n" +
+  "**Advanced Commands**\n\n*Chaining*:\nYou can input multiple instructions at once, e.g. `!a down a`. " +
+  "Each button will be pressed for 300ms.\n" +
+  "*Duration*:\nPostfix a duration to hold the button, e.g. `!b500ms` " +
+  "to hold `B` for 500 milliseconds or `!right2s` to hold `→` for 2 seconds.\n" +
+  "*Not pressing*:\nA dot `.` in a chained command corresponds to not pressing a button.\n" +
+  "*Holding buttons*: \nPrefix an underscore `_` to hold a button for the duration of a " +
+  "chained command, e.g. `!_b up5s` holds the `B` button down while pressing `↑`.";
   
   return helpText;
 }
