@@ -181,7 +181,7 @@ class ButtonPress {
         duration = (duration === null) ? "300MS" : duration[0];
         let durationInMilliseconds = this._parseDuration(duration);
 
-        var button = input.match(/^_?(A|B|UP|DOWN|LEFT|RIGHT|START|SELECT|.)?/g)[0];
+        var button = input.match(/^_?(A|B|UP|DOWN|LEFT|RIGHT|START|SELECT|\.)?/g)[0];
 
         try{
             if (button && input.replace(button, "").replace(duration, "") === ""){

@@ -32,16 +32,24 @@ var onClientReady = () => {
 };
 
 var onMessageReceived = (message) => {
-    if (message.author.bot){
+    if (message.author.bot || message.channel.name != getGameboyChannel(message.client).name){
         return;
     }
 
+    var lowercaseMessage = message.content.trim().toLowerCase();
+
     // Commands should start with a '!'
-    if (message.content.startsWith('!')){
+    if (lowercaseMessage.startsWith('!')){
         lastMesageTimestamp = message.createdTimestamp;
-        var command = message.content.slice(1).trim().toLowerCase();
+        var command = lowercaseMessage.slice(1);
 
         processCommand(command, message);
+    } else if (lowercaseMessage.match(/^_?((a|b|up|down|left|right|start|select|\.)(\d+m?s)?\s?)+$/g)) {
+        // This is a valid command, so process it, without an ! at the start. The flow above is needed 
+        // because it can give feedback for errors
+        lastMesageTimestamp = message.createdTimestamp;
+        
+        processCommand(lowercaseMessage, message);
     }
 };
 
