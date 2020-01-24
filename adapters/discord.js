@@ -32,7 +32,7 @@ var onClientReady = () => {
 };
 
 var onMessageReceived = (message) => {
-    if (message.author.bot || message.channel.name != getGameboyChannel(message.client).name){
+    if (message.author.bot || message.channel.id != getGameboyChannel(message.client).id){
         return;
     }
 
