@@ -41,7 +41,7 @@ var onMessageReceived = (message) => {
     // Commands should start with a '!'
     if (lowercaseMessage.startsWith('!')){
         lastMesageTimestamp = message.createdTimestamp;
-        var command = lowercaseMessage.slice(1);
+        var command = lowercaseMessage.slice(1).trim();
 
         processCommand(command, message);
     } else if (lowercaseMessage.match(/^_?((a|b|up|down|left|right|start|select|\.)(\d+m?s)?\s?)+$/g)) {
@@ -53,7 +53,7 @@ var onMessageReceived = (message) => {
     }
 };
 
-function processCommand(command, message){
+async function processCommand(command, message){
     var commands = command.split(" ");
     let feedback;
 
@@ -65,11 +65,14 @@ function processCommand(command, message){
             feedback = processLoad(commands);
             break;
         case "save":
-            feedback = processSave(commands, message);
+            feedback = await processSave(commands, message);
             break;
         case "update":
             var screenshot = emulator.takeScreenshot();
             getGameboyChannel(client).send({file: PNG.sync.write(screenshot)});
+            return;
+        case "settopic":
+            setTopic(message);
             return;
         default:
             feedback = emulator.processInput(command);
@@ -85,6 +88,16 @@ function sendMessage(feedback, message) {
     }
 }
 
+function setTopic(message){
+    let withoutExclamationMark = message.content.slice(1).trim();
+    let topic = withoutExclamationMark.slice(8).trim();
+    if (topic.length < 1025){
+        message.channel.setTopic(topic);
+    } else {
+        message.channel.send("The channel topic cannot be longer than 1024.");
+    }
+}
+
 function processLoad(commands){
     let state = Number(commands[1]);
     if (state >= 0 && state < 6){
@@ -94,22 +107,27 @@ function processLoad(commands){
     }
 }
 
-function processSave(commands, message){
-    let slot = Number(commands[1]);
-    if (slot >= 3 && slot < 6){
-        let permitted = hasPermission(message.member);
-        if (permitted){
-            emulator.writeSaveFile(slot);
+async function processSave(commands, message){
+    try{
+        let slot = Number(commands[1]);
+        if (slot >= 3 && slot < 6){
+            let permitted = hasPermission(message.member);
+            if (permitted){
+                await emulator.writeSaveFile(slot);
+                return `Game has been saved into slot ${slot}.`;
+            } else {
+                // You are not permitted to load {state}
+                return  `You are not allowed to save in slot ${slot}.`;
+            }
+        } else if (slot >=0 && slot < 3){
+            await emulator.writeSaveFile(slot);
             return `Game has been saved into slot ${slot}.`;
         } else {
-            // You are not permitted to load {state}
-            return  `You are not allowed to save in slot ${slot}.`;
+            return "Specify a slot to save to, i.e. `!save 0` to save in slot 0.";
         }
-    } else if (slot >=0 && slot < 3){
-        emulator.writeSaveFile(slot);
-        return `Game has been saved into slot ${slot}.`;
-    } else {
-        return "Specify a slot to save to, i.e. `!save 0` to save in slot 0.";
+    } catch (err){
+        console.log(err);
+        return "Something went wrong while trying to save the game.";
     }
 }
 
