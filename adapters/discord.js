@@ -36,12 +36,12 @@ var onMessageReceived = (message) => {
         return;
     }
 
-    var lowercaseMessage = message.content.trim().toLowerCase();
+    var lowercaseMessage = prepareMessage(message);
 
     // Commands should start with a '!'
     if (lowercaseMessage.startsWith('!')){
         lastMesageTimestamp = message.createdTimestamp;
-        var command = lowercaseMessage.slice(1).trim();
+        var command = message.content.trim().slice(1).trim();
 
         processCommand(command, message);
     } else if (lowercaseMessage.match(/^_?((a|b|up|down|left|right|start|select|\.)(\d+m?s)?\s?)+$/g)) {
@@ -49,7 +49,7 @@ var onMessageReceived = (message) => {
         // because it can give feedback for errors
         lastMesageTimestamp = message.createdTimestamp;
         
-        processCommand(lowercaseMessage, message);
+        processCommand(message.content.trim(), message);
     }
 };
 
@@ -57,7 +57,7 @@ async function processCommand(command, message){
     var commands = command.split(" ");
     let feedback;
 
-    switch(commands[0]){
+    switch(commands[0].toLowerCase()){
         case "help":
             feedback = sendHelpMessage(message);
             break;
@@ -74,12 +74,25 @@ async function processCommand(command, message){
         case "settopic":
             setTopic(message);
             return;
+        case "macro":
+            feedback = processMacroCommand(commands, message);
+            break;
         default:
             feedback = emulator.processInput(command);
             break;
     }
 
     sendMessage(feedback, message);
+}
+
+function prepareMessage(message){
+    let text = message.content.trim().toLowerCase();
+    if (text === "list macros" || text === "!list macros"){
+        text = "!macro list";
+        message.content = text;
+    }
+
+    return text;
 }
 
 function sendMessage(feedback, message) {
@@ -95,6 +108,38 @@ function setTopic(message){
         message.channel.setTopic(topic);
     } else {
         message.channel.send("The channel topic cannot be longer than 1024.");
+    }
+}
+
+function processMacroCommand(commands, message){
+    switch(commands[1].toLowerCase()){
+        case "add":
+        case "set":
+        case "update":
+            return processAddMacro(commands, message);
+        case "delete":
+        case "remove":
+            return processDeleteMacro(commands, message);
+        case "list":
+            return emulator.listMacros();
+        default:
+            return "You can add, remove or list macro's.";
+    }
+}
+
+function processAddMacro(commands, message){
+    if (hasPermission(message.member)){
+        return emulator.addMacro(commands[2], commands.slice(3).join(" "));
+    } else {
+        return  `You are not allowed to add macro's`;
+    }
+}
+
+function processDeleteMacro(commands, message){
+    if (hasPermission(message.member)){
+        return emulator.deleteMacro(commands[2]);
+    } else {
+        return  `You are not allowed to delete macro's`;
     }
 }
 

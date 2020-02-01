@@ -13,6 +13,13 @@ class Emulator {
         this.saveStatePath = "./saves/";
 
         this.ButtonPresses = [];
+        this.Macros = new Map([
+            ["mashA", "_b a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms" +
+                      " a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms" +
+                      " a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms" +
+                      " a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms" +
+                      " a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms a100ms .100ms"]
+        ]);
 
         this.initialize();
     }
@@ -31,6 +38,7 @@ class Emulator {
     }
 
     processInput(input){
+        input = this.parseMacro(input);
         input = input.toUpperCase();
         let buttonPresses = [];
 
@@ -59,13 +67,53 @@ class Emulator {
         return buttonPresses;
     }
 
+    parseMacro(macro){
+        if (this.Macros.has(macro)){
+            return this.Macros.get(macro);
+        } else {
+            return macro;
+        }
+    }
+
+    listMacros(){
+        return [ ...this.Macros.keys()].map(x => `**${x}**: \`${this.Macros.get(x)}\``).join(", ");
+    }
+
+    addMacro(key, value){
+        try {
+            value = value.toUpperCase();
+            let buttonPresses = this.parseInput(value);
+            
+            if (/^[a-zA-Z0-9]+$/.test(key)){
+                if(buttonPresses && buttonPresses.length > 0){
+                    this.Macros.set(key, value);
+                } else {
+                    return `There was a problem with your macro: \`${value}\`.`;
+                }
+            } else {
+                return `The supplied key \`key\` was not valid. Keys must be alfanumerics only.`
+            }
+        } catch (error) {
+            return `There was a problem with your macro:\n${error.message}`;
+        }
+    }
+
+    deleteMacro(key){
+        if (this.Macros.has(key)){
+            this.Macros.delete(key);
+            return `Macro \`${key}\` has been removed.`;
+        } else {
+            return `Cannot delete macro \`${key}\`, because it doesn't exist.`;
+        }
+    }
+
     updateDurationHoldButtons(buttonPresses){
         for (var i=0; i<buttonPresses.length; i++){
             if (buttonPresses[i].hold){
                 var holdDuration = buttonPresses.slice(i+1).reduce((prev, curr) => prev + curr.duration, 0);
                 buttonPresses[i].duration = holdDuration;
                 if (holdDuration < 100) {
-                    throw new Error(`Cannot hold button ${buttonPresses[i].button} for ${buttonPresses[i].holdDuration}ms`);
+                    throw new Error(`Cannot hold button \`${buttonPresses[i].button}\` for ${buttonPresses[i].holdDuration}ms`);
                 }
             }
         }
