@@ -77,6 +77,11 @@ async function processCommand(command, message){
         case "macro":
             feedback = processMacroCommand(commands, message);
             break;
+        case "upgrade":
+            if (message.author.id == process.env.DiscordAdminUserId) {
+                await message.channel.send("Installing new version. I will be back soon.");
+                process.exit();
+            }
         default:
             feedback = emulator.processInput(command);
             break;
